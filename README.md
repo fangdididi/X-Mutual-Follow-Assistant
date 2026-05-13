@@ -1,5 +1,10 @@
 # X Mutual Follow Assistant
 
+## Project Links
+
+- English version: [X-Mutual-Follow-Assistant](https://github.com/fangdididi/X-Mutual-Follow-Assistant)
+- Chinese version: [x-huguanzhushou](https://github.com/fangdididi/x-huguanzhushou)
+
 A local Chrome MV3 extension for X.com. It shows a movable in-page control panel, visits the live search page, captures the real `SearchTimeline` response, filters posts by keyword, and decides whether each matched author should be followed and replied to.
 
 ## Features
