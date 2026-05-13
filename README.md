@@ -5,7 +5,7 @@
 - English version: [X-Mutual-Follow-Assistant](https://github.com/fangdididi/X-Mutual-Follow-Assistant)
 - Chinese version: [x-huguanzhushou](https://github.com/fangdididi/x-huguanzhushou)
 
-A local Chrome MV3 extension for X.com. It shows a movable in-page control panel, visits the live search page, captures the real `SearchTimeline` response, filters posts by keyword, and decides whether each matched author should be followed and replied to.
+A local Chrome MV3 extension for twitter/x.com. It shows a movable in-page control panel, visits the live search page, captures the real `SearchTimeline` response, filters posts by keyword, and decides whether each matched author should be followed and replied to.
 
 ## Features
 
@@ -25,13 +25,13 @@ A local Chrome MV3 extension for X.com. It shows a movable in-page control panel
 2. Enable Developer mode
 3. Click "Load unpacked"
 4. Select this repository folder
-5. Open and sign in to `https://x.com`
+5. Open and sign in to twitter/x.com (`https://x.com`)
 6. Click the extension icon, then click "Show Page Panel"
 7. Set the keyword, choose a comment file, and click "Start"
 
 ## How It Works
 
-The extension opens `https://x.com/search?q=<keyword>&src=recent_search_click&f=live` and waits for the page's real `SearchTimeline` API response. It parses the timeline entries and filters posts whose text contains your keyword.
+The extension opens the twitter/x.com search page (`https://x.com/search?q=<keyword>&src=recent_search_click&f=live`) and waits for the page's real `SearchTimeline` API response. It parses the timeline entries and filters posts whose text contains your keyword.
 
 For each matched post, it checks whether the post is yours, whether the author is already followed, and whether the author is blue verified when that option is enabled. In dry run mode it only logs planned actions. Real follow and reply requests are sent only after dry run mode is disabled.
 
@@ -40,4 +40,4 @@ For each matched post, it checks whether the post is yours, whether the author i
 - The comment library is a local `.txt` file, one comment per line.
 - This repository does not include a comment file.
 - Keep dry run mode enabled until the logs confirm the logic is correct.
-- Make sure the current Chrome profile is signed in to X.com before running.
+- Make sure the current Chrome profile is signed in to twitter/x.com before running.
