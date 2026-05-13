@@ -1135,6 +1135,12 @@
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
+  function isTimelineCaptureTimeout(error) {
+    const message = String(error?.message || error || '').toLowerCase();
+    return message.includes('searchtimeline')
+      && (message.includes('timed out') || message.includes('timeout'));
+  }
+
   function sleep(ms) {
     return new Promise((resolve) => window.setTimeout(resolve, ms));
   }
@@ -1340,9 +1346,24 @@
       navigating = true;
       navigateSearchForCapture(options.keyword);
     } catch (error) {
+      const errorMessage = String(error?.message || error || 'Unknown error');
+      if (isTimelineCaptureTimeout(error) && !state.stopping) {
+        pendingRun.nextRunAt = 0;
+        pendingRun.loopIndex = state.loopIndex;
+        await savePendingRun(pendingRun);
+        setStatus('Capture timed out, reopening live search', 'running');
+        await appendLog('warn', 'SearchTimeline capture timed out. Reopening live search page', {
+          Error: errorMessage,
+          URL: buildSearchCaptureUrl(options.keyword)
+        });
+        navigating = true;
+        navigateSearchForCapture(options.keyword);
+        return;
+      }
+
       await clearPendingRun();
       setStatus('Execution error', 'error');
-      await appendLog('error', error.message, {});
+      await appendLog('error', errorMessage, {});
     } finally {
       if (!navigating) {
         state.running = false;
