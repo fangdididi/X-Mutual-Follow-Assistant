@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>X Mutual Follow Assistant</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <h1>X Mutual Follow Assistant</h1>
+          <p id="pageStatus" class="page-status">Checking current tab</p>
+        </div>
+        <span class="mode-pill">Page panel</span>
+      </header>
+
+      <section class="panel">
+        <p class="copy">The control panel appears directly on the current X.com page. It can be moved, collapsed to a round icon, and remembers your keyword and local comment file.</p>
+        <div class="action-row single">
+          <button id="showPanelButton" class="button primary" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 5h16v14H4z"></path>
+              <path d="M8 9h8M8 13h5"></path>
+            </svg>
+            <span>Show Page Panel</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="panel log-panel" aria-labelledby="logsTitle">
+        <div class="section-heading">
+          <h2 id="logsTitle">Recent Logs</h2>
+          <span id="logCount" class="muted-pill">0 / 500</span>
+        </div>
+        <div id="logList" class="log-list" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

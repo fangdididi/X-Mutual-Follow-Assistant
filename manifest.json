@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "X Mutual Follow Assistant",
+  "version": "0.2.0",
+  "description": "Shows an in-page X.com control panel for mutual-follow detection with dry run, loops, logs, and counters.",
+  "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "host_permissions": ["https://x.com/*", "https://twitter.com/*"],
+  "action": {
+    "default_title": "X Mutual Follow Assistant",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://x.com/*", "https://twitter.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["injected.js"],
+      "matches": ["https://x.com/*", "https://twitter.com/*"]
+    }
+  ]
+}
