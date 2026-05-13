@@ -16,6 +16,8 @@ A local Chrome MV3 extension for twitter/x.com. It shows a movable in-page contr
 - Loop mode with loop count and interval controls
 - Optional blue-verified-only filter
 - Skips your own posts, already-followed users, and users with unknown follow state
+- Runs against the current browser page and signed-in session, following the real page flow to simulate manual operation
+- Reads the comment file and settings locally, and does not intentionally upload comment libraries, logs, or account data
 - Keeps the latest 500 operation logs
 - Tracks followed, replied, planned follow, and planned reply counts
 
@@ -41,3 +43,4 @@ For each matched post, it checks whether the post is yours, whether the author i
 - This repository does not include a comment file.
 - Keep dry run mode enabled until the logs confirm the logic is correct.
 - Make sure the current Chrome profile is signed in to twitter/x.com before running.
+- This project is under active maintenance and will continue to be improved based on real usage feedback.
