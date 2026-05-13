@@ -17,7 +17,7 @@ A local Chrome MV3 extension for twitter/x.com. It shows a movable in-page contr
 - Optional blue-verified-only filter
 - Skips your own posts, already-followed users, and users with unknown follow state
 - Runs against the current browser page and signed-in session, following the real page flow to simulate manual operation
-- Reads the comment file and settings locally, and does not intentionally upload comment libraries, logs, or account data
+- Reads the comment file and settings locally. Comment libraries, logs, and account data are never uploaded to any project-owned or third-party service; the project includes no third-party API calls outside official twitter/x.com pages, APIs, and static assets
 - Keeps the latest 500 operation logs
 - Tracks followed, replied, planned follow, and planned reply counts
 
