@@ -1121,14 +1121,14 @@
           }
         }
       </style>
-        <div class="xta-panel" role="region" aria-label="Mutual follow assistant control panel">
+        <div class="xta-panel is-collapsed" role="region" aria-label="Mutual follow assistant control panel">
           <header class="xta-head">
             <div>
               <h1 class="xta-title">Mutual Follow Assistant</h1>
             </div>
           <div class="xta-head-actions">
             <span class="xta-status" data-tone="idle">Idle</span>
-            <button class="xta-button secondary xta-toggle" type="button" aria-expanded="true">Collapse</button>
+            <button class="xta-button secondary xta-toggle" type="button" aria-expanded="false" aria-label="Expand panel"><img class="xta-x-logo" src="https://abs.twimg.com/favicons/twitter.3.ico" alt="" draggable="false"></button>
           </div>
         </header>
 
@@ -1365,8 +1365,8 @@
     };
 
     ui.toggleButton.addEventListener('click', onTogglePanel);
-    updatePanelCollapsed(false);
-    ui.toggleButton.setAttribute('aria-label', 'Collapse panel');
+    updatePanelCollapsed(true);
+    ui.toggleButton.setAttribute('aria-label', 'Expand panel');
 
     let isDragging = false;
     let dragPointerId = null;
@@ -1691,6 +1691,28 @@
     };
   }
 
+  function normalizeTargetCheckOptions(options = {}) {
+    return {
+      pageMode: ['latest', 'all', 'custom'].includes(options.pageMode) ? options.pageMode : 'latest',
+      processMode: options.processMode === 'unfollow-all' ? 'unfollow-all' : 'none',
+      customPages: normalizeInteger(options.customPages, DEFAULT_SETTINGS.targetCustomPages, 1)
+    };
+  }
+
+  function getTargetPageLabel(options) {
+    if (options.pageMode === 'latest') {
+      return 'Latest 1 page';
+    }
+    if (options.pageMode === 'all') {
+      return 'All pages';
+    }
+    return options.customPages;
+  }
+
+  function getTargetProcessLabel(options) {
+    return options.processMode === 'unfollow-all' ? 'Unfollow all' : 'No action';
+  }
+
   function randomJitterSeconds(baseSeconds) {
     const offset = Math.floor(Math.random() * 201) - 100;
     return Math.max(1, baseSeconds + offset);
@@ -1779,6 +1801,11 @@
     const pendingRun = stored[PENDING_RUN_KEY];
 
     if (!pendingRun?.active || !location.hostname.endsWith('x.com')) {
+      return;
+    }
+
+    if (pendingRun.task === 'target') {
+      await runTargetCheckFromPending(pendingRun, true);
       return;
     }
 
@@ -1956,24 +1983,39 @@
       return;
     }
 
-    const options = readTargetCheckOptions();
+    const options = normalizeTargetCheckOptions(readTargetCheckOptions());
+    const pendingRun = {
+      active: true,
+      task: 'target',
+      options,
+      createdAt: Date.now()
+    };
+
+    await saveSettings(readSettingsFromUi());
+    await savePendingRun(pendingRun);
+    await runTargetCheckFromPending(pendingRun, false);
+  }
+
+  async function runTargetCheckFromPending(pendingRun, resumed) {
+    const options = normalizeTargetCheckOptions(pendingRun.options || {});
     state.running = true;
     state.stopping = false;
     state.activeTask = 'target';
     state.targetStats = defaultTargetStats();
     renderTargetStats();
+    applySettings({
+      ...state.settings,
+      targetPageMode: options.pageMode,
+      targetProcessMode: options.processMode,
+      targetCustomPages: options.customPages
+    });
     updateButtons();
     setStatus('Checking followed targets', 'running');
 
     try {
-      await saveSettings(readSettingsFromUi());
-      await appendTargetLog('info', 'Followed target check started', {
-        PagesToCheck: options.pageMode === 'latest'
-          ? 'Latest 1 page'
-          : options.pageMode === 'all'
-            ? 'All pages'
-            : options.customPages,
-        ProcessingMode: options.processMode === 'unfollow-all' ? 'Unfollow all' : 'No action'
+      await appendTargetLog(resumed ? 'warn' : 'info', resumed ? 'Resumed followed target check after page refresh' : 'Followed target check started', {
+        PagesToCheck: getTargetPageLabel(options),
+        ProcessingMode: getTargetProcessLabel(options)
       });
 
       const result = await sendPageRequest('RUN_TARGET_CHECK', options, 60 * 60 * 1000);
@@ -1994,7 +2036,9 @@
         NotFollowingMe: result.notFollowedByCount,
         Unfollowed: result.unfollowedCount
       });
+      await clearPendingRun();
     } catch (error) {
+      await clearPendingRun();
       setStatus('Check error', 'error');
       await appendTargetLog('error', String(error?.message || error || 'Unknown error'), {});
     } finally {

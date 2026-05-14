@@ -21,6 +21,12 @@ A local Chrome MV3 extension for twitter/x.com. It shows a movable in-page contr
 - Keeps the latest 500 operation logs
 - Tracks followed and replied counts
 
+## What's New in 0.3.2
+
+- Improved stop handling so pending capture waits are interrupted faster, reducing timeout noise after Stop is clicked.
+- Improved the initial panel state: the in-page panel now starts as a compact round X icon with cleaner expand, collapse, and drag behavior.
+- Improved task continuity so mutual-follow runs and Followed Target Check can resume after a page refresh.
+
 ## What's New in 0.3.1
 
 - Added the Followed Target Check tab for checking the following list by latest page, all pages, or a custom page count.
