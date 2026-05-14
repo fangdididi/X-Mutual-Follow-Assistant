@@ -13,6 +13,7 @@
   const LOG_RENDER_LIMIT = 80;
   const COUNTDOWN_STATUS_INTERVAL_SECONDS = 10;
   const PAGE_REFRESH_EVERY_ROUNDS = 5;
+  const TASK_LOCK_HEARTBEAT_MS = 20 * 1000;
   const LOG_KEY = 'xtlLogs';
   const TARGET_LOG_KEY = 'xtaTargetLogs';
   const STATS_KEY = 'xtaStats';
@@ -63,6 +64,8 @@
   };
 
   const ui = {};
+  let activeTaskLock = null;
+  let taskLockHeartbeatId = null;
 
   function defaultStats() {
     return {
@@ -105,6 +108,69 @@
 
   function sendRuntimeMessage(message) {
     return chrome.runtime.sendMessage(message).catch(() => undefined);
+  }
+
+  function createTaskLockRunId() {
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  function getTaskLockBusyMessage(response) {
+    const task = response?.lock?.task || 'another task';
+    return `Another X page is already running ${task}. This page will not run it again.`;
+  }
+
+  async function acquireTaskLock(task, runId) {
+    const response = await sendRuntimeMessage({
+      type: 'XTA_ACQUIRE_TASK_LOCK',
+      task,
+      runId
+    });
+
+    if (response?.ok) {
+      return response.lock;
+    }
+
+    throw new Error(response?.locked ? getTaskLockBusyMessage(response) : (response?.error || 'Failed to acquire task lock'));
+  }
+
+  function stopTaskLockHeartbeat() {
+    if (taskLockHeartbeatId) {
+      window.clearInterval(taskLockHeartbeatId);
+      taskLockHeartbeatId = null;
+    }
+  }
+
+  function startTaskLockHeartbeat(task, runId) {
+    activeTaskLock = { task, runId };
+    stopTaskLockHeartbeat();
+    taskLockHeartbeatId = window.setInterval(() => {
+      sendRuntimeMessage({
+        type: 'XTA_REFRESH_TASK_LOCK',
+        task,
+        runId
+      });
+    }, TASK_LOCK_HEARTBEAT_MS);
+  }
+
+  async function ensureTaskLock(pendingRun, task) {
+    if (!pendingRun.lockRunId) {
+      pendingRun.lockRunId = createTaskLockRunId();
+    }
+
+    await acquireTaskLock(task, pendingRun.lockRunId);
+    startTaskLockHeartbeat(task, pendingRun.lockRunId);
+    return pendingRun.lockRunId;
+  }
+
+  async function releaseTaskLock(runId = activeTaskLock?.runId) {
+    stopTaskLockHeartbeat();
+    if (runId) {
+      await sendRuntimeMessage({
+        type: 'XTA_RELEASE_TASK_LOCK',
+        runId
+      });
+    }
+    activeTaskLock = null;
   }
 
   async function appendLog(level, message, details = {}) {
@@ -1757,6 +1823,15 @@
     }
 
     const options = readOptions();
+    const pendingRun = {
+      active: true,
+      options,
+      comments: [],
+      loopIndex: 0,
+      nextRunAt: 0,
+      lockRunId: createTaskLockRunId(),
+      createdAt: Date.now()
+    };
     state.running = true;
     state.stopping = false;
     state.activeTask = 'assistant';
@@ -1766,21 +1841,16 @@
 
     try {
       await saveSettings(options);
+      await ensureTaskLock(pendingRun, 'Mutual Follow Assistant');
 
       const comments = await loadComments();
+      pendingRun.comments = comments;
       await appendLog('success', 'Comment library loaded', {
         Count: comments.length,
         Source: options.commentFileName
       });
 
-      await savePendingRun({
-        active: true,
-        options,
-        comments,
-        loopIndex: 0,
-        nextRunAt: 0,
-        createdAt: Date.now()
-      });
+      await savePendingRun(pendingRun);
 
       await appendLog('info', 'Preparing to open X live search and capture the real search timeline response', {
         URL: buildSearchCaptureUrl(options.keyword)
@@ -1792,6 +1862,7 @@
       state.running = false;
       state.stopping = false;
       state.activeTask = '';
+      await releaseTaskLock(pendingRun.lockRunId);
       updateButtons();
     }
   }
@@ -1801,6 +1872,17 @@
     const pendingRun = stored[PENDING_RUN_KEY];
 
     if (!pendingRun?.active || !location.hostname.endsWith('x.com')) {
+      return;
+    }
+
+    const taskName = pendingRun.task === 'target' ? 'Followed Target Check' : 'Mutual Follow Assistant';
+    try {
+      await ensureTaskLock(pendingRun, taskName);
+      await savePendingRun(pendingRun);
+    } catch (error) {
+      setStatus('Another window is running', 'idle');
+      const logFn = pendingRun.task === 'target' ? appendTargetLog : appendLog;
+      await logFn('warn', String(error?.message || error || 'Another X page is already running a task'), {});
       return;
     }
 
@@ -1970,6 +2052,7 @@
       await appendLog('error', errorMessage, {});
     } finally {
       if (!navigating) {
+        await releaseTaskLock(pendingRun.lockRunId);
         state.running = false;
         state.stopping = false;
         state.activeTask = '';
@@ -1988,12 +2071,20 @@
       active: true,
       task: 'target',
       options,
+      lockRunId: createTaskLockRunId(),
       createdAt: Date.now()
     };
 
-    await saveSettings(readSettingsFromUi());
-    await savePendingRun(pendingRun);
-    await runTargetCheckFromPending(pendingRun, false);
+    try {
+      await ensureTaskLock(pendingRun, 'Followed Target Check');
+      await saveSettings(readSettingsFromUi());
+      await savePendingRun(pendingRun);
+      await runTargetCheckFromPending(pendingRun, false);
+    } catch (error) {
+      await releaseTaskLock(pendingRun.lockRunId);
+      setStatus('Check error', 'error');
+      await appendTargetLog('error', String(error?.message || error || 'Unknown error'), {});
+    }
   }
 
   async function runTargetCheckFromPending(pendingRun, resumed) {
@@ -2042,6 +2133,7 @@
       setStatus('Check error', 'error');
       await appendTargetLog('error', String(error?.message || error || 'Unknown error'), {});
     } finally {
+      await releaseTaskLock(pendingRun.lockRunId);
       state.running = false;
       state.stopping = false;
       state.activeTask = '';
@@ -2058,6 +2150,7 @@
     updateButtons();
     setStatus('Stopping', 'running');
     await clearPendingRun();
+    await releaseTaskLock();
     sendStopToPage();
     const logFn = state.activeTask === 'target' ? appendTargetLog : appendLog;
     await logFn('warn', 'Stop requested', {});

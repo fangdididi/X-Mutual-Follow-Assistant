@@ -21,6 +21,12 @@ A local Chrome MV3 extension for twitter/x.com. It shows a movable in-page contr
 - Keeps the latest 500 operation logs
 - Tracks followed and replied counts
 
+## What's New in 0.3.3
+
+- Added a single-task runtime lock so only one twitter/x.com tab or window can resume or run a task at a time, preventing duplicate follows, replies, or checks.
+- Running tasks renew the lock periodically. After page refreshes or navigations, the original task keeps ownership while other pages only show a log notice.
+- The lock is released when a task stops, finishes, or fails, and it expires automatically if the owning page is closed.
+
 ## What's New in 0.3.2
 
 - Improved stop handling so pending capture waits are interrupted faster, reducing timeout noise after Stop is clicked.
