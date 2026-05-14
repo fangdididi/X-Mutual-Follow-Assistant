@@ -38,10 +38,17 @@ A local Chrome MV3 extension for twitter/x.com. It shows a movable in-page contr
 
 ## Installation
 
+First, download the latest ZIP package:
+
+- GitHub downloads: [X-Mutual-Follow-Assistant Releases](https://github.com/fangdididi/X-Mutual-Follow-Assistant/releases/latest)
+- Gitee downloads: [X-Mutual-Follow-Assistant Releases](https://gitee.com/fanglongqing/x-mutual-follow-assistant/releases)
+
+Download `x-mutual-follow-assistant-v*.zip`, extract it locally, then load the extracted folder:
+
 1. Open `chrome://extensions`
 2. Enable Developer mode
 3. Click "Load unpacked"
-4. Select this repository folder
+4. Select the extracted extension folder
 5. Open and sign in to twitter/x.com (`https://x.com`)
 6. Click the extension icon, then click "Show Page Panel"
 7. Set the keyword, choose a comment file, and click "Start"
