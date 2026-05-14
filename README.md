@@ -21,6 +21,15 @@ A local Chrome MV3 extension for twitter/x.com. It shows a movable in-page contr
 - Keeps the latest 500 operation logs
 - Tracks followed and replied counts
 
+## What's New in 0.3.1
+
+- Added the Followed Target Check tab for checking the following list by latest page, all pages, or a custom page count.
+- Followed Target Check can either inspect only or unfollow accounts that do not follow you back, with checked, not-following-back, and unfollowed counters.
+- Mutual follow runs now deduplicate by `userId` within each round, so multiple matched posts from the same author are handled only once.
+- Following-list pagination now stops on terminal `0|...` cursors to avoid unnecessary page requests.
+- Logs now append incrementally, and the background worker broadcasts only new log entries to reduce long-run UI lag.
+- Countdown status updates are throttled, and long-running loops periodically reopen the page to release accumulated page resources.
+
 ## Installation
 
 1. Open `chrome://extensions`
